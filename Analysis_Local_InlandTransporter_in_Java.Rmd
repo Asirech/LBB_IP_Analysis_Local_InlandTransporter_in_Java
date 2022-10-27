@@ -1,0 +1,146 @@
+---
+title: "Transpoter"
+Author : "Cherisa Vinasari"
+date: "`r format(Sys.Date(), '%B %e, %Y')`"
+output: " html_document"
+---
+
+
+```{r setup, include=FALSE}
+#memanggil library
+library(flexdashboard)
+options(scipen = 99) 
+library(tidyverse) 
+library(dplyr) 
+library(readr)
+library(ggplot2) 
+library(plotly) 
+library(glue) 
+library(scales) 
+```
+Perusahaan GJLS merupakan perusahaan yang bergerak di bidang logistik transportasi darat,
+untuk mendukung servis, perusahaan mengadakan kerja sama dengan beberapa vendor untuk pengantaran barang ke customer :
+
+untuk membantu meningkatkan service terutama di leadtime pengantaran  perusahaan perlu mengetahui :
+1. rute - rute yang paling banyak digunakan (top10)
+2. rata - rata leadtime delivery untuk masing-masing rute ()
+3. transporter mana saja yang membuka rute-rute tersebut.
+
+```{r}
+#import data
+df <- read.csv("VETRS_2022.csv")
+```
+
+
+```{r}
+#melihat tipe data 
+glimpse(df)
+```
+
+
+```{r}
+#mengubah tipe data
+df2 <- 
+  df %>% 
+  mutate(
+    equipment_description = as.factor(equipment_description),
+    Carrier_Name = as.factor(Carrier_Name),
+    Created_Date = as.Date(Created_Date,format = "%Y-%m-%d"),
+    Route = as.factor(Route),
+    LTDeliv = as.integer(LTDeliv)
+    
+  )
+df2
+```
+```{r}
+#5 rute yang paling sering digunakan
+toproute <- 
+  df2 %>% 
+  group_by(Route) %>% 
+  summarise(route_count = n()) %>% 
+  arrange(desc(route_count)) %>% 
+top_n(5)
+toproute
+```
+```{r}
+plot1 <- ggplot(data = toproute, 
+       mapping = aes(text = label)) + 
+  geom_col(mapping = aes(x = route_count, 
+                         y = reorder(Route, route_count),
+                         fill = route_count),
+                          show.legend = F, 
+                          position = "stack") +
+  
+  scale_fill_gradient(low = "pink", high = "purple") +
+  labs(
+    title = "Top 5 Route provide by Local Transporter",
+    y = "",
+    x = "Trip Count"
+  ) +
+  theme_minimal()
+plot1
+```
+
+```{r}
+# plot1 <- ggplot(data = Movie_vs_TV_Show, 
+#                 mapping = aes(text = label)) +
+#   geom_col(mapping = aes(x = type, 
+#                          y = Total, 
+#                          fill = type)) +
+#   labs(title = "Amount of content per type",
+#        x = "Type of content",
+#        y = "Amount of content") +
+#   theme(legend.position = "none")
+
+```
+
+```{r}
+
+toproute <- 
+  toproute %>% 
+  mutate(label= glue("Route : {Route},
+                    Total Trip : {route_count}"))
+```
+
+```{r}
+ggplotly(plot1, tooltip = "text")
+```
+```{r}
+equipmentintoproute <- 
+  df2 %>% 
+  filter(Route %in% c("JAWA TIMUR-JAWA TIMUR",
+                      "JAWA TENGAH-JAWA TENGAH",
+                      "SUMATERA UTARA-SUMATERA UTARA",
+                      "JABODETABEK-JAWA BARAT",
+                      "JABODETABEK-BANTEN")) %>% 
+  group_by(equipment_description) %>% 
+  summarise(route_count = n()) %>% 
+  arrange(desc(route_count))
+equipmentintoproute
+```
+```{r}
+equipmentintoproute <- 
+  equipmentintoproute %>% 
+  mutate(label= glue("Fleet Type : {equipment_description},
+                     Total Trip : {route_count}"))
+```
+
+```{r}
+plot2 <- ggplot(data = equipmentintoproute, 
+       mapping = aes(text = label)) + 
+  geom_col(mapping = aes(x = route_count, 
+                         y = reorder(equipment_description, route_count),
+                         fill = route_count),
+                          show.legend = F, 
+                          position = "stack") +
+  
+  scale_fill_gradient(low = "red", high = "black") +
+  labs(
+    title = " Type Fleet in Top 5 Route",
+    y = "",
+    x = "Trip Count"
+  ) +
+  theme_minimal()
+ggplotly(plot2, tooltip = "text")
+```
+

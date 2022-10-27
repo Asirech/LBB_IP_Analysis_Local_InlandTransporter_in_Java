@@ -1,0 +1,118 @@
+---
+title: "Top 5 Routes"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+options(scipen = 99) 
+library(tidyverse) 
+library(dplyr) 
+library(readr)
+library(ggplot2) 
+library(plotly) 
+library(glue) 
+library(scales) 
+```
+
+```{r}
+df <- read.csv("VETRS_2022.csv")
+```
+```{r}
+df2 <- 
+  df %>% 
+  mutate(
+    equipment_description = as.factor(equipment_description),
+    Carrier_Name = as.factor(Carrier_Name),
+    Created_Date = as.Date(Created_Date,format = "%Y-%m-%d"),
+    Route = as.factor(Route),
+    LTDeliv = as.integer(LTDeliv)
+    
+  )
+```
+```{r}
+toproute <- 
+  df2 %>% 
+  group_by(Route) %>% 
+  summarise(route_count = n()) %>% 
+  arrange(desc(route_count)) %>% 
+top_n(5)
+```
+```{r}
+toproute <- 
+  toproute %>% 
+  mutate(label= glue("Route : {Route},
+                    Total Trip : {route_count}"))
+```
+
+
+Column 
+-----------------------------------------------------------------------
+
+### TOP 5 ROUTE
+
+```{r}
+plot1 <- ggplot(data = toproute, 
+       mapping = aes(text = label)) + 
+  geom_col(mapping = aes(x = route_count, 
+                         y = reorder(Route, route_count),
+                         fill = route_count),
+                          show.legend = F, 
+                          position = "stack") +
+  
+  scale_fill_gradient(low = "pink", high = "purple") +
+  labs(
+    title = "Top 5 Route provide by Local Transporter",
+    y = "",
+    x = "Trip Count"
+  ) +
+  theme_minimal()
+
+ggplotly(plot1, tooltip = "text")
+```
+
+Column 
+-----------------------------------------------------------------------
+
+### 
+
+```{r}
+equipmentintoproute <- 
+  df2 %>% 
+  filter(Route %in% c("JAWA TIMUR-JAWA TIMUR",
+                      "JAWA TENGAH-JAWA TENGAH",
+                      "SUMATERA UTARA-SUMATERA UTARA",
+                      "JABODETABEK-JAWA BARAT",
+                      "JABODETABEK-BANTEN")) %>% 
+  group_by(equipment_description) %>% 
+  summarise(route_count = n()) %>% 
+  arrange(desc(route_count))
+
+equipmentintoproute <- 
+  equipmentintoproute %>% 
+  mutate(label= glue("Fleet Type : {equipment_description},
+                     Total Trip : {route_count}"))
+
+plot2 <- ggplot(data = equipmentintoproute, 
+       mapping = aes(text = label)) + 
+  geom_col(mapping = aes(x = route_count, 
+                         y = reorder(equipment_description, route_count),
+                         fill = route_count),
+                          show.legend = F, 
+                          position = "stack") +
+  
+  scale_fill_gradient(low = "red", high = "black") +
+  labs(
+    title = " Type Fleet in Top 5 Route",
+    y = "",
+    x = "Trip Count"
+  ) +
+  theme_minimal()
+ggplotly(plot2, tooltip = "text")
+```
+
+
+
